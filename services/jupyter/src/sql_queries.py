@@ -137,18 +137,125 @@ JSON 'auto';
 
 # FINAL TABLES
 songplay_table_insert = '''
+INSERT INTO songplays (
+    start_time,
+    user_id,
+    level,
+    song_id,
+    artist_id,
+    session_id,
+    location,
+    user_agent
+)
+
+SELECT
+    se.ts AS start_time,
+    se.userid AS user_id,
+    se.level,
+    ss.song_id,
+    ss.artist_id,
+    se.sessionid AS session_id,
+    se.location,
+    se.useragent AS user_agent
+
+FROM staging_events AS se
+    LEFT JOIN staging_songs AS ss
+        ON  se.song   = ss.title
+        AND se.artist = ss.artist_name
+
+LEFT OUTER JOIN songplays as sp
+    ON  se.userid = sp.user_id
+    AND se.ts     = sp.start_time
+
+WHERE
+    se.page            = 'NextSong'
+    AND se.userid      is not NULL
+    AND se.level       is not NULL
+    AND ss.song_id     is not NULL
+    AND ss.artist_id   is not NULL
+    AND se.sessionid   is not NULL
+    AND se.location    is not NULL
+    AND se.useragent   is not NULL
+    AND sp.songplay_id is NULL
+
+ORDER BY start_time, user_id;
 '''
 
 user_table_insert = '''
+INSERT INTO users (
+    user_id,
+    first_name,
+    last_name,
+    gender,
+    level
+)
+SELECT DISTINCT
+    userId AS user_id,
+    firstName AS first_name,
+    lastName AS last_name,
+    gender,
+    level
+FROM staging_events
+WHERE userId IS NOT NULL;
+ORDER BY userId;
 '''
 
 song_table_insert = '''
+INSERT INTO songs (
+    song_id,
+    title,
+    artist_id,
+    year,
+    duration
+)
+SELECT DISTINCT
+    song_id AS song_id,
+    title AS title,
+    artist_id AS artist_id,
+    year,
+    duration
+FROM staging_songs
+WHERE song_id IS NOT NULL;
 '''
 
 artist_table_insert = '''
+INSERT INTO artists (
+    artist_id,
+    name,
+    location,
+    latitude,
+    longitude,
+)
+SELECT DISTINCT
+    artist_id,
+    artist_name AS name,
+    location,
+    latitude,
+    longitude
+FROM staging_songs
+WHERE artist_id IS NOT NULL;
 '''
 
 time_table_insert = '''
+INSERT INTO dim_time (
+    start_time,
+    hour,
+    day,
+    week,
+    month,
+    year,
+    weekday
+)
+SELECT DISTINCT
+    ts AS start_time,
+    EXTRACT(hour FROM ts),
+    EXTRACT(day FROM ts),
+    EXTRACT(week FROM ts),
+    EXTRACT(month FROM ts),
+    EXTRACT(year FROM ts),
+    EXTRACT(weekday FROM ts)
+FROM staging_events
+WHERE ts IS NOT NULL;
 '''
 
 
