@@ -117,9 +117,21 @@ DISTSTYLE ALL;
 
 # STAGING TABLES
 staging_events_copy = f"""
+COPY staging_events
+FROM '{config.get('S3', 'LOG_DATA')}'
+CREDENTIALS 'aws_iam_role={config.get('IAM_ROLE', 'ARN')}'
+TRUNCATECOLUMNS BLANKSASNULL EMPTYASNULL
+REGION 'us-west-2'
+FORMAT AS JSON '{config.get('S3', 'LOG_JSONPATH')}';
 """
 
 staging_songs_copy = f"""
+COPY staging_songs
+FROM '{config.get('S3', 'SONG_DATA')}'
+CREDENTIALS 'aws_iam_role={config.get('IAM_ROLE', 'ARN')}'
+TRUNCATECOLUMNS BLANKSASNULL EMPTYASNULL
+REGION 'us-west-2'
+JSON 'auto';
 """
 
 
