@@ -7,13 +7,13 @@ config.read('dwh.cfg')
 
 
 # DROP TABLES
-staging_events_table_drop = 'DROP TABLE IF EXISTS staging_events;'
-staging_songs_table_drop = 'DROP TABLE IF EXISTS staging_songs;'
-songplay_table_drop = 'DROP TABLE IF EXISTS songplays;'
-user_table_drop = 'DROP TABLE IF EXISTS users;'
-song_table_drop = 'DROP TABLE IF EXISTS songs;'
-artist_table_drop = 'DROP TABLE IF EXISTS artists;'
-time_table_drop = 'DROP TABLE IF EXISTS time;'
+staging_events_table_drop = 'DROP TABLE IF EXISTS staging_events CASCADE;'
+staging_songs_table_drop = 'DROP TABLE IF EXISTS staging_songs CASCADE;'
+songplay_table_drop = 'DROP TABLE IF EXISTS songplays CASCADE;'
+user_table_drop = 'DROP TABLE IF EXISTS users CASCADE;'
+song_table_drop = 'DROP TABLE IF EXISTS songs CASCADE;'
+artist_table_drop = 'DROP TABLE IF EXISTS artists CASCADE;'
+time_table_drop = 'DROP TABLE IF EXISTS time CASCADE;'
 
 
 # CREATE TABLES
@@ -34,7 +34,7 @@ CREATE TABLE IF NOT EXISTS staging_events (
     sessionid     INTEGER,
     song          TEXT,
     status        INTEGER,
-    ts            BIGINT,
+    ts            TIMESTAMP,
     useragent     TEXT,
     userid        INTEGER
 );
@@ -44,7 +44,7 @@ staging_songs_table_create = '''
 CREATE TABLE IF NOT EXISTS staging_songs (
     song_id          TEXT PRIMARY KEY,
     title            TEXT,
-    duration         INTEGER,
+    duration         FLOAT,
     year             FLOAT,
     num_songs        FLOAT,
     artist_id        TEXT,
@@ -58,7 +58,7 @@ CREATE TABLE IF NOT EXISTS staging_songs (
 songplay_table_create = '''
 CREATE TABLE IF NOT EXISTS songplays (
     songplay_id INTEGER IDENTITY(0,1) PRIMARY KEY,
-    start_time  BIGINT NOT NULL REFERENCES time(start_time) SORTKEY,
+    start_time  TIMESTAMP NOT NULL REFERENCES time(start_time) SORTKEY,
     user_id     INTEGER NOT NULL REFERENCES users(user_id),
     level       TEXT NOT NULL,
     song_id     TEXT NOT NULL REFERENCES songs(song_id) DISTKEY,
@@ -95,7 +95,7 @@ artist_table_create = '''
     artist_id TEXT PRIMARY KEY,
     name      TEXT NOT NULL,
     location  TEXT,
-    lattitude FLOAT,
+    latitude  FLOAT,
     longitude FLOAT
 )
 DISTSTYLE ALL;
@@ -103,7 +103,7 @@ DISTSTYLE ALL;
 
 time_table_create = '''
 CREATE TABLE IF NOT EXISTS time (
-    start_time BIGINT PRIMARY KEY,
+    start_time TIMESTAMP PRIMARY KEY,
     hour       INTEGER,
     day        INTEGER,
     week       INTEGER,
@@ -121,6 +121,7 @@ COPY staging_events
 FROM '{config.get('S3', 'LOG_DATA')}'
 CREDENTIALS 'aws_iam_role={config.get('IAM_ROLE', 'ARN')}'
 TRUNCATECOLUMNS BLANKSASNULL EMPTYASNULL
+TIMEFORMAT as 'epochmillisecs'
 REGION 'us-west-2'
 FORMAT AS JSON '{config.get('S3', 'LOG_JSONPATH')}';
 """
@@ -196,7 +197,7 @@ SELECT DISTINCT
     gender,
     level
 FROM staging_events
-WHERE userId IS NOT NULL;
+WHERE userId IS NOT NULL
 ORDER BY userId;
 '''
 
@@ -224,20 +225,20 @@ INSERT INTO artists (
     name,
     location,
     latitude,
-    longitude,
+    longitude
 )
 SELECT DISTINCT
     artist_id,
     artist_name AS name,
-    location,
-    latitude,
-    longitude
+    artist_location AS location,
+    artist_latitude AS latitude,
+    artist_longitude AS longitude
 FROM staging_songs
 WHERE artist_id IS NOT NULL;
 '''
 
 time_table_insert = '''
-INSERT INTO dim_time (
+INSERT INTO time (
     start_time,
     hour,
     day,
