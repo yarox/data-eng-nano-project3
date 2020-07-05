@@ -51,7 +51,7 @@ Under `services/jupyter/config/docker/`:
 + `Dockerfile` creates the Jupyter image we used for this project.
 
 ### Amazon Web Services
-The only things you need for running this code is an [Redshift](https://console.aws.amazon.com/redshift/) cluster up and running and an [IAM](https://console.aws.amazon.com/iam/) role with AmazonS3ReadOnlyAccess permission attached to it in order for your cluster to load data from Amazon S3 buckets.
+The only things you need for running this code is an [Redshift](https://console.aws.amazon.com/redshift/) cluster up and running and an [IAM](https://console.aws.amazon.com/iam/) role with `AmazonS3ReadOnlyAccess` permission attached to it in order for your cluster to load data from Amazon S3 buckets.
 
 Get your cluster and role configuration from the AWS console and fill in the `dwh.cfg` file.
 
