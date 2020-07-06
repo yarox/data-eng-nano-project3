@@ -27,6 +27,8 @@ We created a star schema optimized for queries on song play analysis using the p
 4. **time** - timestamps of records in songplays broken down into specific units
     + start_time, hour, day, week, month, year, weekday
 
+![Data Warehouse ERD](images/data_warehouse_erd.png)
+
 ### ETL Pipeline
 The pipeline is divided into creating the Redshift tables, loading the data into staging tables from S3 using COPY commands, and populating the final fact and dimension tables from the staging tables.
 
@@ -75,3 +77,73 @@ Execute `docker-compose down` to stop the container.
 If you already have a Python installation on your system, check the dependencies from `services/jupyter/config/requirements.txt` and execute the code under `services/jupyter/config/src/`.
 
 To populate the tables open a terminal, jump into the `services/jupyter/config/src/` directory, and run `python create_tables.py` followed by `python etl.py`. Remember to always run `python create_tables.py` before `python etl.py` in order to reset the database.
+
+## Example Queries and Results
+### User Account Level
+````
+SELECT level, COUNT(*)
+FROM users
+GROUP BY level
+ORDER BY level;
+````
+
+![User Level](images/user_level.png)
+
+### User Gender
+````
+SELECT gender, COUNT(*)
+FROM users
+GROUP BY gender
+ORDER BY gender;
+````
+
+![User Gender](images/user_gender.png)
+
+### User Operating System
+````
+SELECT
+    CASE
+        WHEN user_agent LIKE '%Linux%' THEN 'Linux'
+        WHEN user_agent LIKE '%Mac%' THEN 'MacOS'
+        WHEN user_agent LIKE '%Windows%' THEN 'Windows'
+        ELSE 'Unknown'
+    END AS os,
+    COUNT(*)
+FROM
+    songplays
+GROUP BY os
+ORDER BY os;
+````
+
+![User OS](images/user_os.png)
+
+### Most Popular Play Times Per Time of Day
+````
+SELECT
+    CASE
+        WHEN t.hour BETWEEN 6 AND 12 THEN 'Morning'
+        WHEN t.hour BETWEEN 13 AND 22 THEN 'Evening'
+        ELSE 'Night'
+    END as result,
+    COUNT(*)
+FROM
+    songplays AS s
+    JOIN time AS t ON s.start_time = t.start_time
+GROUP BY result
+ORDER BY result;
+````
+
+![Play Times Per Time of Day](images/play_times_time_of_day.png)
+
+### Most Popular Play Times Per Day of Week
+````
+SELECT
+    t.weekday,
+    COUNT(*)
+FROM
+    songplays AS s
+    JOIN time AS t ON s.start_time = t.start_time
+GROUP BY t.weekday
+ORDER BY t.weekday;
+````
+![Play Times Per Day of Week](images/play_times_day_of_week.png)
